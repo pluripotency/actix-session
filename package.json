@@ -1,0 +1,23 @@
+{
+  "name": "actix-redis-session",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "esbuild_prod": "esbuild js/index.js '--define:RELEASE=true' --outfile=dist/index.js",
+    "esbuild_devel": "esbuild --bundle js/index.js '--define:process.env.NODE_ENV=\"development\"' --outfile=dist/index.js --minify --sourcemap",
+    "coffee": "coffee -cwb -o js coffee_src",
+    "build": "coffee -cb -o js coffee_src && npm run esbuild_devel",
+    "serve": "sh start.sh"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "mithril": "^2.0.4"
+  },
+  "devDependencies": {
+    "coffeescript": "^2.5.1",
+    "esbuild": "^0.1.14"
+  }
+}
