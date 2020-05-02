@@ -2,14 +2,18 @@ use actix_redis::RedisSession;
 use actix_files as fs;
 use actix_session::Session;
 use actix_web::{web, HttpResponse, Result};
+use time;
 use serde::{Deserialize, Serialize};
 
-pub fn redis_session(private_key: &[u8])-> Result<RedisSession> {
+pub fn redis_session(private_key: &[u8], session_key: &'static str, cookie_name: &'static str)-> Result<RedisSession> {
     // Generate a random 32 byte key. Note that it is important to use a unique
     // private key for every project. Anyone with access to the key can generate
     // authentication cookies for any user!
     let session = RedisSession::new("127.0.0.1:6379", private_key)
-        .cache_keygen(Box::new(|key: &str| format!("sess:{}", &key)));
+        .cookie_name(cookie_name)
+        .cookie_max_age(time::Duration::minutes(20))
+        .cache_keygen(Box::new(move |key: &str| format!("{}:{}", session_key, &key)));
+
     Ok(session)
 }
 
@@ -83,16 +87,14 @@ pub fn asset() -> Result<fs::Files> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use actix_redis::RedisSession;
-    use rand::Rng;
     use actix_http::httpmessage::HttpMessage;
     use actix_web::{
-        middleware, test,
+        middleware, test, App,
         web::{get, post, resource},
-        App,
     };
     use serde_json::json;
     use time;
+    use rand::Rng;
 
     #[actix_rt::test]
     async fn test_workflow() {
@@ -129,10 +131,7 @@ mod test {
         let private_key = rand::thread_rng().gen::<[u8; 32]>();
         let srv = test::start(move || {
             App::new()
-                .wrap(
-                    RedisSession::new("127.0.0.1:6379", &private_key)
-                        .cookie_name("test-session"),
-                )
+                .wrap(redis_session(&private_key, "test-session", "test-session").unwrap())
                 .wrap(middleware::Logger::default())
                 .service(resource("/user").route(get().to(index)))
                 .service(resource("/count_up").route(post().to(count_up)))

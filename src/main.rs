@@ -25,7 +25,7 @@ async fn main() -> std::io::Result<()> {
     let mut server = HttpServer::new(move || {
         App::new()
             // redis session middleware
-            .wrap(redis_session(&private_key).unwrap())
+            .wrap(redis_session(&private_key, "sess", "actix-redis").unwrap())
             // enable logger - always register actix-web Logger middleware last
             .wrap(middleware::Logger::default())
             .route("/favicon.ico", get().to(favicon))
