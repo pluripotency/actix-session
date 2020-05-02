@@ -34,35 +34,48 @@ pub async fn index(session: Session) -> Result<HttpResponse> {
 }
 
 pub async fn count_up(session: Session) -> Result<HttpResponse> {
-    let user_id: Option<String> = session.get::<String>("user_id").unwrap();
-    let counter: i32 = session
-        .get::<i32>("counter")
-        .unwrap_or(Some(0))
-        .map_or(1, |inner| inner + 1);
-    session.set("counter", counter)?;
+    if let Some(user_id) = session.get::<String>("user_id").unwrap() {
+        let counter: i32 = session
+            .get::<i32>("counter")
+            .unwrap_or(Some(0))
+            .map_or(1, |inner| inner + 1);
+        session.set("counter", counter)?;
 
-    Ok(HttpResponse::Ok().json(IndexResponse { user_id, counter }))
+        Ok(HttpResponse::Ok().json(IndexResponse { user_id: Some(user_id), counter }))
+    } else {
+        Ok(HttpResponse::Ok().json(IndexResponse { user_id: None, counter: 0 }))
+    }
 }
 
 #[derive(Deserialize)]
 pub struct Identity {
     user_id: String,
+    password: String,
 }
 
-pub async fn login(user_id: web::Json<Identity>, session: Session) -> Result<HttpResponse> {
-    let id = user_id.into_inner().user_id;
-    session.set("user_id", &id)?;
-    session.renew();
+pub async fn login(web_json: web::Json<Identity>, session: Session) -> Result<HttpResponse> {
+    let json = web_json.into_inner();
+    let id = json.user_id;
+    let pass = json.password;
+    if id == "user".to_string() && pass == "password".to_string() {
+        session.set("user_id", &id)?;
+        session.renew();
 
-    let counter: i32 = session
-        .get::<i32>("counter")
-        .unwrap_or(Some(0))
-        .unwrap_or(0);
+        let counter: i32 = session
+            .get::<i32>("counter")
+            .unwrap_or(Some(0))
+            .unwrap_or(0);
 
-    Ok(HttpResponse::Ok().json(IndexResponse {
-        user_id: Some(id),
-        counter,
-    }))
+        Ok(HttpResponse::Ok().json(IndexResponse {
+            user_id: Some(id),
+            counter,
+        }))
+    } else {
+        Ok(HttpResponse::Ok().json(IndexResponse {
+            user_id: None,
+            counter: 0,
+        }))
+    }
 }
 
 pub async fn logout(session: Session) -> Result<HttpResponse> {

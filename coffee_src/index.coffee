@@ -10,14 +10,18 @@ delay_fade = (res)->
 login =
   user_id_logged_in: ''
   user_id_input: ''
+  password_input: ''
   login: (e)->
     e.preventDefault()
     m.request
       method: 'post'
       url: '/login'
-      body: user_id: login.user_id_input
+      body:
+        user_id: login.user_id_input
+        password: login.password_input
     .then (data)->
       login.user_id_input = ''
+      login.password_input = ''
       delay_fade(data)
       login.get()
   get: ()->
@@ -49,6 +53,7 @@ counter =
 
 
 Home =
+  oninit: (vnode)-> login.get()
   view: ()->
     m '.container', [
       m '.card', [
@@ -72,6 +77,11 @@ Home =
                 type: 'text'
                 oninput: (e)-> login.user_id_input = e.target.value
                 value: login.user_id_input
+              m 'label.mr-2', 'Password'
+              m 'input.form-control.mr-2',
+                type: 'password'
+                oninput: (e)-> login.password_input = e.target.value
+                value: login.password_input
               m 'button.btn.btn-light',
                 type: 'submit'
                 onclick: login.login
@@ -85,6 +95,11 @@ Home =
               m 'label.btn.btn-light',
                 onclick: counter.count_up
               , 'Count UP'
+            ]
+            m '.col', [
+              m 'label.btn.btn-info',
+                onclick: login.get
+              , 'Get Current'
             ]
           ]
           if response
