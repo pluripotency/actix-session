@@ -1,60 +1,94 @@
 import m from 'mithril'
 
-user_json = {}
-get_user = ()->
-  m.request
-    method: 'get'
-    url: '/user'
-  .then (data)->
-    user_json = data
+response = ''
+delay_fade = (res)->
+  response = res
+  setTimeout ()->
+    response = ''
+  , 2000
 
-login_json = {}
-post_login = ()->
-  m.request
-    method: 'post'
-    url: '/login'
-    body: user_id: 'user1'
-  .then (data)->
-     login_json = data
+login =
+  user_id_logged_in: ''
+  user_id_input: ''
+  login: (e)->
+    e.preventDefault()
+    m.request
+      method: 'post'
+      url: '/login'
+      body: user_id: login.user_id_input
+    .then (data)->
+      login.user_id_input = ''
+      delay_fade(data)
+      login.get()
+  get: ()->
+    m.request
+      method: 'get'
+      url: '/user'
+    .then (data)->
+      delay_fade(data)
+      counter.count = data.counter
+      login.user_id_logged_in = data.user_id
+  logout: ()->
+    m.request
+      method: 'post'
+      url: '/logout'
+    .then (data)->
+      counter.count = 0
+      login.user_id_logged_in = ''
+      delay_fade(data)
 
-logout_json = {}
-post_logout = ()->
-  m.request
-    method: 'post'
-    url: '/logout'
-  .then (data)->
-     logout_json = data
+counter =
+  count: 0
+  count_up: ()->
+    m.request
+      method: 'post'
+      url: '/count_up'
+    .then (data)->
+      counter.count = data.counter
+      delay_fade(data)
 
-do_something_json = {}
-post_count_up = ()->
-  m.request
-    method: 'post'
-    url: '/count_up'
-  .then (data)->
-     do_something_json = data
 
 Home =
   view: ()->
     m '.container', [
-      m '.panel.panel-default', [
-        m '.panel-heading', 'Actix Redis Session'
-        m '.panel-body', [
-          m 'label.btn.btn-default',
-            onclick: get_user
-          , 'Get User'
-          m 'label.form-control', JSON.stringify user_json
-          m 'label.btn.btn-default',
-            onclick: post_login
-          , 'Login'
-          m 'label.form-control', JSON.stringify login_json
-          m 'label.btn.btn-default',
-            onclick: post_count_up
-          , 'count up'
-          m 'label.form-control', JSON.stringify do_something_json
-          m 'label.btn.btn-default',
-            onclick: post_logout
-          , 'Logout'
-          m 'label.form-control', JSON.stringify logout_json
+      m '.card', [
+        m '.card-header', 'Actix Redis Session'
+        m '.card-body', [
+          if login.user_id_logged_in
+            m '.row', [
+              m '.col', [
+                m 'h3', login.user_id_logged_in
+              ]
+              m '.col', [
+                m 'label.btn.btn-dark',
+                  onclick: login.logout
+                , 'Log out'
+              ]
+            ]
+          else
+            m 'form.form-inline', [
+              m 'label.mr-2', 'User ID'
+              m 'input.form-control.mr-2',
+                type: 'text'
+                oninput: (e)-> login.user_id_input = e.target.value
+                value: login.user_id_input
+              m 'button.btn.btn-light',
+                type: 'submit'
+                onclick: login.login
+              , 'Login'
+            ]
+          m '.row',[
+            m '.col', [
+              m 'h3', counter.count
+            ]
+            m '.col', [
+              m 'label.btn.btn-light',
+                onclick: counter.count_up
+              , 'Count UP'
+            ]
+          ]
+          if response
+            m '.alert.alert-info', JSON.stringify response
         ]
       ]
     ]
