@@ -6,7 +6,8 @@ response =
     response.message = res
     setTimeout ()->
       response.message = ''
-    , 2000
+      m.redraw()
+    , 3000
 
 login =
   user_id_logged_in: ''
@@ -57,48 +58,54 @@ login_btn =
   pos:
     x: 0
     y: 0
-
-PopOverBottom =
-  view: (vnode)->
-    x = vnode.attrs.x
-    y = vnode.attrs.y
-    m 'div', [
-      if login_btn.visible
-        m '.popover.fade.bs-popover-bottom.show',
-          style:
-            position: 'absolute'
-            transform: "translate3d(#{x}px, #{y}px, 0px)"
-            top: '0px'
-            left: '0px'
-            'will-change': 'transform'
-        , [
-            m '.arrow',
-              style: left: '20px'
-            m '.popover-body', 'Input Username and submit'
-          ]
-    ]
+    arrow_x: 0
 
 DisabledNavLoginButton =
-  oncreate: (vnode)->
-    rect = vnode.dom.getBoundingClientRect()
+  oncreate: ()->
+    src_rect = document.getElementById('pop_src').getBoundingClientRect()
+    popup_rect = document.getElementById('pop_up').getBoundingClientRect()
     login_btn.pos =
-      x: rect.x-nav.pos.x
-      y: rect.y+rect.height+10
+      x: src_rect.x + src_rect.width - popup_rect.width
+      y: src_rect.y + src_rect.height + 10
+      arrow_x: popup_rect.width - src_rect.width + 10
   view: ()->
-    m 'label.btn.btn-outline-secondary',
-      onclick: ()->
-        login_btn.visible = true
-        setTimeout ()->
-          login_btn.visible = false
-        , 5000
-    , 'Login'
+    x = login_btn.pos.x
+    y = login_btn.pos.y
+    arrow_x = login_btn.pos.arrow_x
+    m 'div', [
+      m 'label#pop_src.btn.btn-outline-secondary',
+        onclick: ()->
+          login_btn.visible = !login_btn.visible
+          setTimeout ()->
+            login_btn.visible = false
+            m.redraw()
+          , 3000
+      , 'Login'
+      m '#pop_up.popover.fade.bs-popover-bottom',
+        class: if login_btn.visible then 'show' else ''
+        style:
+          position: 'fixed'
+          transform: "translate3d(#{x}px, #{y}px, 0px)"
+          top: '0px'
+          left: '0px'
+          'will-change': 'transform'
+      , [
+          m '.arrow',
+            style: left: "#{arrow_x}px"
+          m '.popover-body', [
+            m 'pre',
+              style:
+                'font-size': '1.5em'
+            , """
+              Any User Name
+              with "password"
+              then Submit
+              """
+          ]
+        ]
+    ]
 
 nav =
-  pos:
-    x: 0
-    y: 0
-    height: 0
-    width: 0
   collapse: true
   toggle: (e)->
     e.preventDefault()
@@ -109,13 +116,6 @@ nav =
     nav.selected_index = i
 
 Nav =
-  oncreate: (vnode)->
-    rect = vnode.dom.getBoundingClientRect()
-    nav.pos =
-      x: rect.x
-      y: rect.y
-      height: rect.height
-      width: rect.width
   view: ()->
     m 'nav.navbar.navbar-expand-md.bg-dark.navbar-dark', [
       m 'a.navbar-brand.text-light', 'Actix Redis Session'
@@ -137,14 +137,14 @@ Nav =
               ]
           if login.user_id_logged_in
             m '.form-inline', [
-              m 'label.btn.btn-outline-success',
+              m 'label.btn.btn-outline-success.fade-in',
                 title: 'Click to Logout'
                 onclick: login.logout
               , [
                   m '.mr-2', [
                     m PowerIcon
                   ]
-                  m '.text-light', 'user@domain.local'
+                  m '.text-light', "#{login.user_id_logged_in} logged in."
                 ]
             ]
           else
@@ -156,7 +156,7 @@ Nav =
                 value: login.user_id_input
               if login.user_id_input
                 m 'div', [
-                  m 'input.form-control.mr-sm-2',
+                  m 'input.form-control.mr-sm-2.fade-in',
                     type: 'password'
                     placeholder: 'Password'
                     oninput: (e)-> login.password_input = e.target.value
@@ -164,12 +164,11 @@ Nav =
                   m 'button.btn.btn-outline-info',
                     type: 'submit'
                     onclick: login.login
-                  , 'Login'
+                  , 'Submit'
                 ]
               else
                 m 'div', [
                   m DisabledNavLoginButton
-                  m PopOverBottom, login_btn.pos
                 ]
             ]
         ]
@@ -190,7 +189,6 @@ Home =
   view: ()->
     m '.container', [
       m Nav
-
       m '.card', [
         m '.card-header', 'Actix Redis Session'
         m '.card-body', [

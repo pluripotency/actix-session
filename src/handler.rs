@@ -57,7 +57,7 @@ pub async fn login(web_json: web::Json<Identity>, session: Session) -> Result<Ht
     let json = web_json.into_inner();
     let id = json.user_id;
     let pass = json.password;
-    if id == "user".to_string() && pass == "password".to_string() {
+    if pass == "password".to_string() {
         session.set("user_id", &id)?;
         session.renew();
 
